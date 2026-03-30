@@ -31,6 +31,10 @@ async function findBinary(binary, exec = defaultExec) {
   return (result.stdout ?? '').trim();
 }
 
+async function verifyCli(cliPath, exec = defaultExec) {
+  await exec(cliPath, ['self-test']);
+}
+
 export async function ensureCurlCrypto({ exec = defaultExec } = {}) {
   try {
     await findBinary('node', exec);
@@ -50,14 +54,17 @@ export async function ensureCurlCrypto({ exec = defaultExec } = {}) {
 
   try {
     const cliPath = await findBinary('curl-crypto', exec);
+    await verifyCli(cliPath, exec);
     return {
       ok: true,
       code: 'OK',
       autoInstalled: false,
       cliPath,
     };
-  } catch {
-    // Continue to install.
+  } catch (error) {
+    if (error?.stderr || error?.stdout) {
+      // Found but unusable: continue to a clean reinstall.
+    }
   }
 
   try {
@@ -71,6 +78,7 @@ export async function ensureCurlCrypto({ exec = defaultExec } = {}) {
 
   try {
     const cliPath = await findBinary('curl-crypto', exec);
+    await verifyCli(cliPath, exec);
     return {
       ok: true,
       code: 'OK',
@@ -78,8 +86,9 @@ export async function ensureCurlCrypto({ exec = defaultExec } = {}) {
       cliPath,
     };
   } catch (error) {
-    return createCommandError('CLI_MISSING', 'curl-crypto is still unavailable after installation.', {
+    return createCommandError('CLI_INVALID', 'curl-crypto is still unavailable after installation or cannot run self-test.', {
       stderr: error.stderr ?? '',
+      stdout: error.stdout ?? '',
       installTarget: INSTALL_TARGET,
     });
   }

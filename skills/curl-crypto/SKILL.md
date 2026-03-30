@@ -19,11 +19,13 @@ Do not rely on plugin-relative `node scripts/...` paths from the user's workspac
 Always use the installed `curl-crypto` CLI directly:
 
 1. Check `command -v curl-crypto`.
-2. If it is missing and setup is allowed, install it with `npm install -g github:leeguooooo/curl-crypto-plugin`.
-3. If the service needs private settings, run `curl-crypto config init` once or point the CLI at a private config file.
-4. Use `curl-crypto decrypt-curl` to extract and decrypt request params from curl.
-5. Use `curl-crypto decrypt-payload` when the payload string is already isolated.
-6. Use `curl-crypto encrypt-payload` before calling encrypted test-service endpoints.
+2. After discovery or installation, always run `curl-crypto self-test` before assuming the binary is usable.
+3. If `curl-crypto` is missing or broken, install or reinstall it with `npm install -g github:leeguooooo/curl-crypto-plugin`.
+4. Never use `npx curl-crypto`, `npm bin -g`, or npm-registry package lookups for this CLI.
+5. If the service needs private settings, run `curl-crypto config init` once or point the CLI at a private config file.
+6. Use `curl-crypto decrypt-curl` to extract and decrypt request params from curl.
+7. Use `curl-crypto decrypt-payload` when the payload string is already isolated.
+8. Use `curl-crypto encrypt-payload` before calling encrypted test-service endpoints.
 
 ## Supported workflows
 

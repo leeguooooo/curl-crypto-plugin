@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import { runCurlCrypto, setupCurlCrypto } from '../scripts/run-curl-crypto.mjs';
 
 test('runCurlCrypto returns stdout when command succeeds', async () => {
-  const ensureCurlCrypto = async () => ({ ok: true, code: 'OK', autoInstalled: false });
+  const ensureCurlCrypto = async () => ({ ok: true, code: 'OK', autoInstalled: false, cliPath: '/usr/local/bin/curl-crypto' });
   const exec = async (command, args = []) => {
-    assert.equal(command, 'curl-crypto');
+    assert.equal(command, '/usr/local/bin/curl-crypto');
     assert.deepEqual(args, ['self-test']);
     return { code: 0, stdout: '{"ok":true}\n', stderr: '' };
   };
@@ -19,7 +19,7 @@ test('runCurlCrypto returns stdout when command succeeds', async () => {
 });
 
 test('runCurlCrypto returns command failure for errors', async () => {
-  const ensureCurlCrypto = async () => ({ ok: true, code: 'OK', autoInstalled: false });
+  const ensureCurlCrypto = async () => ({ ok: true, code: 'OK', autoInstalled: false, cliPath: '/usr/local/bin/curl-crypto' });
   const exec = async () => {
     const error = new Error('unknown failure');
     error.code = 2;
@@ -36,9 +36,9 @@ test('runCurlCrypto returns command failure for errors', async () => {
 });
 
 test('setupCurlCrypto runs self-test after ensure', async () => {
-  const ensureCurlCrypto = async () => ({ ok: true, code: 'OK', autoInstalled: true });
+  const ensureCurlCrypto = async () => ({ ok: true, code: 'OK', autoInstalled: true, cliPath: '/usr/local/bin/curl-crypto' });
   const exec = async (command, args = []) => {
-    assert.equal(command, 'curl-crypto');
+    assert.equal(command, '/usr/local/bin/curl-crypto');
     assert.deepEqual(args, ['self-test']);
     return { code: 0, stdout: '{"ok":true,"message":"curl-crypto encryption and decryption are working."}', stderr: '' };
   };

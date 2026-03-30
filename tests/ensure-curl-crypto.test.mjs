@@ -47,6 +47,7 @@ test('returns ok when curl-crypto is already installed', async () => {
     'which node': { ok: true, stdout: '/usr/bin/node\n' },
     'which npm': { ok: true, stdout: '/usr/bin/npm\n' },
     'which curl-crypto': { ok: true, stdout: '/usr/local/bin/curl-crypto\n' },
+    '/usr/local/bin/curl-crypto self-test': { ok: true, stdout: '{"ok":true}\n' },
   });
 
   const result = await ensureCurlCrypto({ exec });
@@ -54,6 +55,58 @@ test('returns ok when curl-crypto is already installed', async () => {
   assert.equal(result.ok, true);
   assert.equal(result.code, 'OK');
   assert.equal(result.autoInstalled, false);
+});
+
+test('reinstalls curl-crypto when the discovered binary is broken', async () => {
+  const calls = [];
+  const exec = async (command, args = []) => {
+    calls.push(`${command} ${args.join(' ')}`.trim());
+    const key = calls[calls.length - 1];
+
+    if (key === 'which node') {
+      return { code: 0, stdout: '/usr/bin/node\n', stderr: '' };
+    }
+    if (key === 'which npm') {
+      return { code: 0, stdout: '/usr/bin/npm\n', stderr: '' };
+    }
+    if (key === 'which curl-crypto' && calls.filter((call) => call === 'which curl-crypto').length === 1) {
+      return { code: 0, stdout: '/opt/homebrew/bin/curl-crypto\n', stderr: '' };
+    }
+    if (key === '/opt/homebrew/bin/curl-crypto self-test') {
+      const error = new Error('no such file or directory');
+      error.code = 127;
+      error.stdout = '';
+      error.stderr = 'no such file or directory';
+      throw error;
+    }
+    if (key === 'npm install -g github:leeguooooo/curl-crypto-plugin') {
+      return { code: 0, stdout: 'installed', stderr: '' };
+    }
+    if (key === 'which curl-crypto' && calls.filter((call) => call === 'which curl-crypto').length === 2) {
+      return { code: 0, stdout: '/usr/local/bin/curl-crypto\n', stderr: '' };
+    }
+    if (key === '/usr/local/bin/curl-crypto self-test') {
+      return { code: 0, stdout: '{"ok":true}\n', stderr: '' };
+    }
+
+    throw new Error(`Unexpected command: ${key}`);
+  };
+
+  const result = await ensureCurlCrypto({ exec });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'OK');
+  assert.equal(result.autoInstalled, true);
+  assert.equal(result.cliPath, '/usr/local/bin/curl-crypto');
+  assert.deepEqual(calls, [
+    'which node',
+    'which npm',
+    'which curl-crypto',
+    '/opt/homebrew/bin/curl-crypto self-test',
+    'npm install -g github:leeguooooo/curl-crypto-plugin',
+    'which curl-crypto',
+    '/usr/local/bin/curl-crypto self-test',
+  ]);
 });
 
 test('installs curl-crypto automatically when missing', async () => {
@@ -81,6 +134,9 @@ test('installs curl-crypto automatically when missing', async () => {
     if (key === 'which curl-crypto' && calls.filter((call) => call === 'which curl-crypto').length === 2) {
       return { code: 0, stdout: '/usr/local/bin/curl-crypto\n', stderr: '' };
     }
+    if (key === '/usr/local/bin/curl-crypto self-test') {
+      return { code: 0, stdout: '{"ok":true}\n', stderr: '' };
+    }
 
     throw new Error(`Unexpected command: ${key}`);
   };
@@ -96,5 +152,6 @@ test('installs curl-crypto automatically when missing', async () => {
     'which curl-crypto',
     'npm install -g github:leeguooooo/curl-crypto-plugin',
     'which curl-crypto',
+    '/usr/local/bin/curl-crypto self-test',
   ]);
 });

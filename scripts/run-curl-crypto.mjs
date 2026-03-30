@@ -40,7 +40,7 @@ export async function runCurlCrypto({
   }
 
   try {
-    const result = await exec('curl-crypto', args);
+    const result = await exec(environment.cliPath || 'curl-crypto', args);
     return {
       ok: true,
       code: 'OK',
