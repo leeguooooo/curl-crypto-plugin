@@ -67,6 +67,26 @@ Optional hidden runtime bundle:
 
 This bundle is only light obfuscation for team distribution convenience. It is not a security boundary.
 
+## Team usage
+
+For normal team users, the expected flow is:
+
+1. Install the plugin or the local `curl-crypto` CLI.
+2. Run `curl-crypto self-test` or any decrypt command.
+3. If the private runtime is already present, the CLI will continue normally.
+4. If the private runtime is missing, the CLI will return `RUNTIME_BUNDLE_REQUIRED` and tell the user to ask Leo for `runtime.dat`.
+5. After `runtime.dat` is placed in the package bundle path, the CLI will auto-extract it into `~/.config/curl-crypto/` on the next run.
+
+For team distribution, users should not need to manually handle plain `config.json` or `mimlib.wasm` files.
+
+For Leo or maintainers preparing the private runtime bundle:
+
+```bash
+curl-crypto bundle pack --output vendor/runtime.dat
+```
+
+That command packages the current local `config.json` and `mimlib.wasm` into a lightly obfuscated `runtime.dat` file for internal distribution.
+
 ## Layout
 
 - `.cursor-plugin/plugin.json`: Cursor marketplace metadata
