@@ -20,6 +20,21 @@ import SiteLayout from '../../layouts/SiteLayout.astro';
     <h2>Initialize local config</h2>
     <pre><code>curl-crypto config init</code></pre>
 
+    <h2>Private wasm runtime</h2>
+    <p>
+      Put the business-specific <code>mimlib.wasm</code> on the local machine, usually at
+      <code>~/.config/curl-crypto/mimlib.wasm</code>, then point the config there. The public repository only ships the
+      generic Go <code>wasm_exec.js</code> loader.
+    </p>
+
+    <h2>Optional hidden team bundle</h2>
+    <p>
+      For team distribution you can generate a lightly obfuscated <code>runtime.dat</code> bundle and ship it with the
+      plugin package. When the local runtime files are missing, the CLI will automatically unpack that bundle into
+      <code>~/.config/curl-crypto/</code>.
+    </p>
+    <pre><code>curl-crypto bundle pack --output vendor/runtime.dat</code></pre>
+
     <h2>First decrypt example</h2>
     <pre><code>curl-crypto decrypt-curl --curl-file request.curl</code></pre>
 

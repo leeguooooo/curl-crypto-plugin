@@ -2,6 +2,7 @@ import { createCipheriv, createDecipheriv } from 'node:crypto';
 
 import { DEFAULT_CONFIG } from './config.mjs';
 import { parseCurl } from './curl-parser.mjs';
+import { getWasmRuntime } from './wasm-runtime.mjs';
 
 function parseMaybeJson(value) {
   if (typeof value !== 'string') {
@@ -274,11 +275,84 @@ export async function resolveCryptoContext({
   };
 }
 
-export function decryptPayload({
+async function tryWasmDecrypt({ normalized, candidates, config, wasmRuntime }) {
+  const runtime = wasmRuntime ?? (await getWasmRuntime({ config }));
+  if (!runtime?.ok) {
+    return null;
+  }
+
+  for (const secretKey of candidates) {
+    if (!secretKey) {
+      continue;
+    }
+
+    try {
+      const decrypted = runtime.decrypt(normalized, secretKey);
+      if (
+        !decrypted ||
+        decrypted === normalized ||
+        decrypted.includes('�') ||
+        decrypted.startsWith('error=')
+      ) {
+        continue;
+      }
+
+      return {
+        ok: true,
+        code: 'OK',
+        strategy: 'wasm',
+        value: parseMaybeJson(decrypted),
+        normalizedInput: normalized,
+        fullKey: secretKey,
+      };
+    } catch {
+      // Try the next candidate key.
+    }
+  }
+
+  return null;
+}
+
+async function tryWasmEncrypt({ data, candidates, config, wasmRuntime }) {
+  const runtime = wasmRuntime ?? (await getWasmRuntime({ config }));
+  if (!runtime?.ok) {
+    return null;
+  }
+
+  const input = coerceInputData(data);
+
+  for (const secretKey of candidates) {
+    if (!secretKey) {
+      continue;
+    }
+
+    try {
+      const encrypted = runtime.encrypt(input, secretKey);
+      if (!encrypted || encrypted.startsWith('error=')) {
+        continue;
+      }
+
+      return {
+        ok: true,
+        code: 'OK',
+        strategy: 'wasm',
+        value: encrypted,
+        fullKey: secretKey,
+      };
+    } catch {
+      // Try the next candidate key.
+    }
+  }
+
+  return null;
+}
+
+export async function decryptPayload({
   encryptedData,
   key = '',
   keySuffix = '',
   config = DEFAULT_CONFIG,
+  wasmRuntime,
 } = {}) {
   const original = String(encryptedData ?? '');
   const normalized = normalizeCipherText(original);
@@ -296,6 +370,17 @@ export function decryptPayload({
 
   const fullKey = keySuffix ? `${key}${keySuffix}` : key;
   const candidates = dedupe([fullKey, key, ...(config.payload.fallbackKeys ?? [])]);
+
+  const wasmResult = await tryWasmDecrypt({
+    normalized,
+    candidates,
+    config,
+    wasmRuntime,
+  });
+
+  if (wasmResult) {
+    return wasmResult;
+  }
 
   for (const secretKey of candidates) {
     try {
@@ -347,11 +432,12 @@ export function decryptPayload({
   };
 }
 
-export function encryptPayload({
+export async function encryptPayload({
   data,
   key = '',
   keySuffix = '',
   config = DEFAULT_CONFIG,
+  wasmRuntime,
 } = {}) {
   const fullKey = keySuffix ? `${key}${keySuffix}` : key;
   const fallbackKey = config.payload.fallbackKeys?.[0] ?? '';
@@ -362,6 +448,17 @@ export function encryptPayload({
       code: 'KEY_MISSING',
       message: 'A key is required to encrypt data.',
     };
+  }
+
+  const wasmResult = await tryWasmEncrypt({
+    data,
+    candidates: dedupe([effectiveKey, key, ...(config.payload.fallbackKeys ?? [])]),
+    config,
+    wasmRuntime,
+  });
+
+  if (wasmResult) {
+    return wasmResult;
   }
 
   const aesKey = toAesKey(effectiveKey);
@@ -395,6 +492,7 @@ export async function decryptCurlParams({
   autoFetchKey = true,
   config = DEFAULT_CONFIG,
   fetchImpl = globalThis.fetch,
+  wasmRuntime,
 } = {}) {
   const parsedCurl = parseCurl(curlCommand);
   const extraction = extractEncryptedPayload(parsedCurl);
@@ -425,11 +523,12 @@ export async function decryptCurlParams({
     };
   }
 
-  const decrypted = decryptPayload({
+  const decrypted = await decryptPayload({
     encryptedData: extraction.encryptedData,
     key: context.key,
     keySuffix: context.keySuffix,
     config,
+    wasmRuntime,
   });
 
   if (!decrypted.ok) {
@@ -455,28 +554,30 @@ export async function decryptCurlParams({
   };
 }
 
-export function runSelfTest() {
+export async function runSelfTest({ wasmRuntime, config = DEFAULT_CONFIG } = {}) {
   const sample = {
     uid: 42,
     action: 'ping',
   };
 
-  const encrypted = encryptPayload({
+  const encrypted = await encryptPayload({
     data: sample,
     key: 'abc',
     keySuffix: 'xyz',
-    config: DEFAULT_CONFIG,
+    config,
+    wasmRuntime,
   });
 
   if (!encrypted.ok) {
     return encrypted;
   }
 
-  const decrypted = decryptPayload({
+  const decrypted = await decryptPayload({
     encryptedData: encrypted.value,
     key: 'abc',
     keySuffix: 'xyz',
-    config: DEFAULT_CONFIG,
+    config,
+    wasmRuntime,
   });
 
   if (!decrypted.ok || JSON.stringify(decrypted.value) !== JSON.stringify(sample)) {

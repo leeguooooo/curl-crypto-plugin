@@ -28,10 +28,15 @@ const testConfig = {
     keySuffixHeaders: ['x-crypto-key-suffix'],
     fallbackKeys: [],
   },
+  runtime: {
+    preferWasm: false,
+    wasmBinaryPath: '',
+    wasmExecPath: '',
+  },
 };
 
-test('encryptPayload and decryptPayload round-trip JSON', () => {
-  const encrypted = encryptPayload({
+test('encryptPayload and decryptPayload round-trip JSON', async () => {
+  const encrypted = await encryptPayload({
     data: { foo: 'bar', count: 2 },
     key: 'abc',
     keySuffix: 'xyz',
@@ -40,7 +45,7 @@ test('encryptPayload and decryptPayload round-trip JSON', () => {
 
   assert.equal(encrypted.ok, true);
 
-  const decrypted = decryptPayload({
+  const decrypted = await decryptPayload({
     encryptedData: encrypted.value,
     key: 'abc',
     keySuffix: 'xyz',
@@ -52,7 +57,7 @@ test('encryptPayload and decryptPayload round-trip JSON', () => {
 });
 
 test('decryptCurlParams decrypts POST body data field', async () => {
-  const encrypted = encryptPayload({
+  const encrypted = await encryptPayload({
     data: { uid: 7, amount: 99 },
     key: 'abc',
     keySuffix: 'xyz',
@@ -71,7 +76,7 @@ test('decryptCurlParams decrypts POST body data field', async () => {
 });
 
 test('decryptCurlParams decrypts GET query data field', async () => {
-  const encrypted = encryptPayload({
+  const encrypted = await encryptPayload({
     data: { page: 1, keyword: 'leo' },
     key: 'abc',
     keySuffix: 'xyz',
@@ -111,7 +116,49 @@ test('fetchKeyFromLookup extracts key from configured lookup response', async ()
   assert.equal(result.key, '555');
 });
 
-test('runSelfTest passes', () => {
-  const result = runSelfTest();
+test('decryptPayload prefers wasm runtime when available', async () => {
+  const result = await decryptPayload({
+    encryptedData: 'cipher-value',
+    key: 'abc',
+    keySuffix: 'xyz',
+    config: testConfig,
+    wasmRuntime: {
+      ok: true,
+      decrypt(cipher, secretKey) {
+        assert.equal(cipher, 'cipher+value');
+        assert.equal(secretKey, 'abcxyz');
+        return '{"source":"wasm"}';
+      },
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.strategy, 'wasm');
+  assert.deepEqual(result.value, { source: 'wasm' });
+});
+
+test('encryptPayload prefers wasm runtime when available', async () => {
+  const result = await encryptPayload({
+    data: { foo: 'bar' },
+    key: 'abc',
+    keySuffix: 'xyz',
+    config: testConfig,
+    wasmRuntime: {
+      ok: true,
+      encrypt(message, secretKey) {
+        assert.equal(message, '{"foo":"bar"}');
+        assert.equal(secretKey, 'abcxyz');
+        return 'cipher-from-wasm';
+      },
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.strategy, 'wasm');
+  assert.equal(result.value, 'cipher-from-wasm');
+});
+
+test('runSelfTest passes', async () => {
+  const result = await runSelfTest({ config: testConfig });
   assert.equal(result.ok, true);
 });

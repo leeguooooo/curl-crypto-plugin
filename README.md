@@ -10,11 +10,13 @@ It ships with a local `curl-crypto` CLI so AI agents can decrypt request paramet
 - Decrypt payloads from POST bodies like `{"data":"..."}`
 - Decrypt GET query payloads such as `?data=...`
 - Load lookup URLs, header names, and fallback key material from a local config file
+- Prefer a private wasm runtime when one is available locally, then fall back to generic AES logic
 - Encrypt JSON payloads so agents can call encrypted test-service endpoints
 
 ## Primary workflows
 
 - `curl-crypto self-test`
+- `curl-crypto bundle pack`
 - `curl-crypto config init`
 - `curl-crypto decrypt-curl --curl-file request.curl`
 - `curl-crypto decrypt-payload --data '<cipher>' --key abc --key-suffix xyz`
@@ -32,11 +34,38 @@ Override path:
 - `CURL_CRYPTO_CONFIG=/path/to/config.json`
 - `curl-crypto --config /path/to/config.json ...`
 
+Shareable template:
+
+- [config.example.json](/Users/leo/github.com/curl-crypto-plugin/config.example.json)
+
 Initialize interactively:
 
 ```bash
 curl-crypto config init
 ```
+
+Or copy the template into place:
+
+```bash
+mkdir -p ~/.config/curl-crypto
+cp config.example.json ~/.config/curl-crypto/config.json
+```
+
+Private wasm path:
+
+- `~/.config/curl-crypto/mimlib.wasm`
+- `CURL_CRYPTO_WASM_BINARY=/path/to/mimlib.wasm`
+- `curl-crypto --wasm-binary /path/to/mimlib.wasm ...`
+
+The repository ships a generic Go `wasm_exec.js` runtime, but the business-specific `mimlib.wasm` stays on each machine.
+
+Optional hidden runtime bundle:
+
+- Generate: `curl-crypto bundle pack --output vendor/runtime.dat`
+- Install behavior: when `~/.config/curl-crypto/config.json` or `mimlib.wasm` is missing, the CLI will auto-extract `vendor/runtime.dat` if it exists in the installed plugin package
+- Missing-bundle behavior: commands such as `self-test` and `decrypt-curl` will return a structured `RUNTIME_BUNDLE_REQUIRED` error that tells the user to ask Leo for `runtime.dat`
+
+This bundle is only light obfuscation for team distribution convenience. It is not a security boundary.
 
 ## Layout
 
@@ -45,7 +74,10 @@ curl-crypto config init
 - `bin/curl-crypto.mjs`: installable CLI entrypoint
 - `scripts/lib/config.mjs`: private config loading and writing
 - `scripts/lib/curl-parser.mjs`: shell-style curl parsing
-- `scripts/lib/curl-crypto-core.mjs`: encryption, decryption, and request-param extraction
+- `scripts/lib/curl-crypto-core.mjs`: wasm-first encryption, decryption, and request-param extraction
+- `scripts/lib/runtime-bundle.mjs`: light bundle pack/extract for private runtime payloads
+- `scripts/lib/wasm-runtime.mjs`: Node-side wasm loader with a minimal browser-like shim
+- `vendor/wasm/wasm_exec.js`: bundled Go wasm runtime shim
 
 ## Local development
 

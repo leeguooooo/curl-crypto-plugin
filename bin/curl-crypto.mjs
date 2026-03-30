@@ -12,10 +12,12 @@ import {
   runSelfTest,
 } from '../scripts/lib/curl-crypto-core.mjs';
 import {
+  getDefaultWasmBinaryPath,
   loadRuntimeConfig,
   mergeRuntimeConfig,
   writeRuntimeConfig,
 } from '../scripts/lib/config.mjs';
+import { BUNDLED_RUNTIME_PATH, writeRuntimeBundle } from '../scripts/lib/runtime-bundle.mjs';
 
 function parseArgs(argv) {
   const positionals = [];
@@ -67,6 +69,24 @@ async function resolveInput(options, fieldName) {
   return '';
 }
 
+function createRuntimeBundleRequiredResult(loadedConfig) {
+  return {
+    ok: false,
+    code: 'RUNTIME_BUNDLE_REQUIRED',
+    message: 'Missing private runtime files. Please ask Leo for runtime.dat and place it in the configured bundle path, then run the command again.',
+    action: 'ask_leo_for_runtime_dat',
+    runtime: {
+      runtimeDir: loadedConfig.runtimeDir,
+      runtimeBundlePath: loadedConfig.runtimeBundlePath,
+      runtimeBundleExists: loadedConfig.runtimeBundleExists,
+      configPath: loadedConfig.runtimeFiles?.configPath,
+      configExists: loadedConfig.runtimeFiles?.configExists,
+      wasmPath: loadedConfig.runtimeFiles?.wasmPath,
+      wasmExists: loadedConfig.runtimeFiles?.wasmExists,
+    },
+  };
+}
+
 function splitCsv(value) {
   return String(value)
     .split(',')
@@ -78,6 +98,7 @@ function applyCliConfigOverrides(config, options) {
   const overrideConfig = {
     lookup: {},
     payload: {},
+    runtime: {},
   };
 
   if (typeof options.lookupUrl === 'string') {
@@ -113,6 +134,17 @@ function applyCliConfigOverrides(config, options) {
   }
   if (typeof options.fallbackKeys === 'string') {
     overrideConfig.payload.fallbackKeys = splitCsv(options.fallbackKeys);
+  }
+  if (options.preferWasm === false) {
+    overrideConfig.runtime.preferWasm = false;
+  } else if (options.preferWasm === true) {
+    overrideConfig.runtime.preferWasm = true;
+  }
+  if (typeof options.wasmBinary === 'string') {
+    overrideConfig.runtime.wasmBinaryPath = options.wasmBinary;
+  }
+  if (typeof options.wasmExec === 'string') {
+    overrideConfig.runtime.wasmExecPath = options.wasmExec;
   }
 
   return mergeRuntimeConfig(config, overrideConfig);
@@ -161,6 +193,18 @@ async function initConfig(options, loadedConfig) {
         ),
         fallbackKeys: splitCsv(await ask('Fallback keys (comma separated, optional)', config.payload.fallbackKeys.join(','))),
       },
+      runtime: {
+        preferWasm:
+          ['y', 'yes', 'true', '1'].includes(
+            (await ask('Prefer wasm runtime when available? (yes/no)', config.runtime.preferWasm ? 'yes' : 'no'))
+              .toLowerCase()
+          ),
+        wasmBinaryPath: await ask(
+          'Private wasm binary path',
+          config.runtime.wasmBinaryPath || getDefaultWasmBinaryPath()
+        ),
+        wasmExecPath: await ask('Override wasm_exec.js path (optional)', config.runtime.wasmExecPath),
+      },
     };
 
     const saved = await writeRuntimeConfig(nextConfig, {
@@ -188,8 +232,50 @@ async function run() {
   const runtimeConfig = applyCliConfigOverrides(loadedConfig.config, options);
   let result;
 
+  const requiresPrivateRuntime = ['self-test', 'decrypt-payload', 'encrypt-payload', 'decrypt-curl'];
+  if (requiresPrivateRuntime.includes(command) && !loadedConfig.runtimeReady) {
+    result = createRuntimeBundleRequiredResult(loadedConfig);
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(1);
+  }
+
   if (command === 'self-test') {
-    result = runSelfTest();
+    result = await runSelfTest({ config: runtimeConfig });
+  } else if (command === 'bundle') {
+    const subcommand = positionals[1];
+
+    if (subcommand === 'pack') {
+      const sourceConfigPath =
+        typeof options.sourceConfig === 'string'
+          ? options.sourceConfig
+          : typeof options.configFile === 'string'
+            ? options.configFile
+            : loadedConfig.configPath;
+      const wasmPath =
+        typeof options.wasmBinary === 'string' ? options.wasmBinary : runtimeConfig.runtime.wasmBinaryPath;
+      const outputPath =
+        typeof options.output === 'string'
+          ? options.output
+          : typeof options.outputFile === 'string'
+            ? options.outputFile
+            : BUNDLED_RUNTIME_PATH;
+
+      result = {
+        ok: true,
+        code: 'OK',
+        ...(await writeRuntimeBundle({
+          configPath: sourceConfigPath,
+          wasmPath,
+          outputPath,
+        })),
+      };
+    } else {
+      result = {
+        ok: false,
+        code: 'USAGE',
+        message: 'Unknown bundle command. Use bundle pack.',
+      };
+    }
   } else if (command === 'config') {
     const subcommand = positionals[1];
     if (subcommand === 'path') {
@@ -218,7 +304,7 @@ async function run() {
     }
   } else if (command === 'decrypt-payload') {
     const data = await resolveInput(options, 'data');
-    result = decryptPayload({
+    result = await decryptPayload({
       encryptedData: data,
       key: typeof options.key === 'string' ? options.key : '',
       keySuffix: typeof options.keySuffix === 'string' ? options.keySuffix : '',
@@ -226,7 +312,7 @@ async function run() {
     });
   } else if (command === 'encrypt-payload') {
     const data = await resolveInput(options, 'data');
-    result = encryptPayload({
+    result = await encryptPayload({
       data,
       key: typeof options.key === 'string' ? options.key : '',
       keySuffix: typeof options.keySuffix === 'string' ? options.keySuffix : '',
@@ -253,7 +339,8 @@ async function run() {
     result = {
       ok: false,
       code: 'USAGE',
-      message: 'Unknown command. Use self-test, config, decrypt-payload, encrypt-payload, decrypt-curl, or lookup-key.',
+      message:
+        'Unknown command. Use self-test, bundle pack, config, decrypt-payload, encrypt-payload, decrypt-curl, or lookup-key.',
     };
   }
 

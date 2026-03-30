@@ -1,0 +1,25 @@
+{
+  "lookup": {
+    "url": "https://your-private-lookup.example.com/path",
+    "contextHeaders": ["x-context-id"],
+    "clientHeaders": ["x-client"],
+    "deviceHeaders": ["x-device"],
+    "languageHeaders": ["x-language"],
+    "defaultHeaders": {
+      "client": "web",
+      "device": "desktop",
+      "language": "zh-CN"
+    },
+    "derivePositions": [2, 5, 8]
+  },
+  "payload": {
+    "keyHeaders": ["x-crypto-key"],
+    "keySuffixHeaders": ["x-crypto-key-suffix"],
+    "fallbackKeys": []
+  },
+  "runtime": {
+    "preferWasm": true,
+    "wasmBinaryPath": "/Users/you/.config/curl-crypto/mimlib.wasm",
+    "wasmExecPath": ""
+  }
+}

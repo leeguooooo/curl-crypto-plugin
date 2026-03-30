@@ -1,6 +1,8 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
+
+import { BUNDLED_RUNTIME_PATH, extractRuntimeBundle } from './runtime-bundle.mjs';
 
 export const DEFAULT_CONFIG = {
   lookup: {
@@ -20,6 +22,11 @@ export const DEFAULT_CONFIG = {
     keyHeaders: ['x-crypto-key'],
     keySuffixHeaders: ['x-crypto-key-suffix'],
     fallbackKeys: [],
+  },
+  runtime: {
+    preferWasm: true,
+    wasmBinaryPath: '',
+    wasmExecPath: '',
   },
 };
 
@@ -51,6 +58,14 @@ export function getDefaultConfigPath() {
   return path.join(homedir(), '.config', 'curl-crypto', 'config.json');
 }
 
+export function getDefaultWasmBinaryPath() {
+  return path.join(homedir(), '.config', 'curl-crypto', 'mimlib.wasm');
+}
+
+export function getDefaultRuntimeDir() {
+  return path.dirname(getDefaultConfigPath());
+}
+
 export function mergeRuntimeConfig(baseConfig = DEFAULT_CONFIG, overrideConfig = {}) {
   return normalizeRuntimeConfig({
     lookup: {
@@ -65,12 +80,17 @@ export function mergeRuntimeConfig(baseConfig = DEFAULT_CONFIG, overrideConfig =
       ...(baseConfig.payload ?? {}),
       ...(overrideConfig.payload ?? {}),
     },
+    runtime: {
+      ...(baseConfig.runtime ?? {}),
+      ...(overrideConfig.runtime ?? {}),
+    },
   });
 }
 
 export function normalizeRuntimeConfig(config = {}) {
   const lookup = config.lookup ?? {};
   const payload = config.payload ?? {};
+  const runtime = config.runtime ?? {};
 
   return {
     lookup: {
@@ -103,11 +123,72 @@ export function normalizeRuntimeConfig(config = {}) {
       ),
       fallbackKeys: normalizeStringArray(payload.fallbackKeys, DEFAULT_CONFIG.payload.fallbackKeys),
     },
+    runtime: {
+      preferWasm: typeof runtime.preferWasm === 'boolean' ? runtime.preferWasm : DEFAULT_CONFIG.runtime.preferWasm,
+      wasmBinaryPath:
+        typeof runtime.wasmBinaryPath === 'string'
+          ? runtime.wasmBinaryPath.trim()
+          : DEFAULT_CONFIG.runtime.wasmBinaryPath,
+      wasmExecPath:
+        typeof runtime.wasmExecPath === 'string'
+          ? runtime.wasmExecPath.trim()
+          : DEFAULT_CONFIG.runtime.wasmExecPath,
+    },
   };
 }
 
 export async function loadRuntimeConfig({ configPath, env = process.env } = {}) {
   const resolvedConfigPath = configPath || env.CURL_CRYPTO_CONFIG || getDefaultConfigPath();
+  const runtimeDir = path.dirname(resolvedConfigPath);
+  const resolvedWasmPath = env.CURL_CRYPTO_WASM_BINARY || path.join(runtimeDir, 'mimlib.wasm');
+  const resolvedBundlePath = env.CURL_CRYPTO_RUNTIME_BUNDLE || BUNDLED_RUNTIME_PATH;
+
+  let bootstrapped = false;
+  let configFileReady = false;
+  let wasmFileReady = false;
+  let bundleExists = false;
+  try {
+    await access(resolvedConfigPath);
+    configFileReady = true;
+  } catch {
+    // Continue below.
+  }
+
+  try {
+    await access(resolvedWasmPath);
+    wasmFileReady = true;
+  } catch {
+    // Continue below.
+  }
+
+  if (!configFileReady || !wasmFileReady) {
+    try {
+      await access(resolvedBundlePath);
+      bundleExists = true;
+      await extractRuntimeBundle({
+        bundlePath: resolvedBundlePath,
+        targetDir: runtimeDir,
+      });
+      bootstrapped = true;
+    } catch {
+      // Ignore bootstrap failure here and continue with normal file loading.
+    }
+  }
+
+  try {
+    await access(resolvedConfigPath);
+    configFileReady = true;
+  } catch {
+    configFileReady = false;
+  }
+
+  try {
+    await access(resolvedWasmPath);
+    wasmFileReady = true;
+  } catch {
+    wasmFileReady = false;
+  }
+
   let fileConfig = {};
   let exists = false;
 
@@ -166,10 +247,40 @@ export async function loadRuntimeConfig({ configPath, env = process.env } = {}) 
   if (env.CURL_CRYPTO_FALLBACK_KEYS) {
     envConfig.payload = { ...(envConfig.payload ?? {}), fallbackKeys: env.CURL_CRYPTO_FALLBACK_KEYS.split(',') };
   }
+  if (env.CURL_CRYPTO_PREFER_WASM) {
+    envConfig.runtime = {
+      ...(envConfig.runtime ?? {}),
+      preferWasm: !['0', 'false', 'no', 'off'].includes(String(env.CURL_CRYPTO_PREFER_WASM).toLowerCase()),
+    };
+  }
+  if (env.CURL_CRYPTO_WASM_BINARY) {
+    envConfig.runtime = { ...(envConfig.runtime ?? {}), wasmBinaryPath: env.CURL_CRYPTO_WASM_BINARY };
+  }
+  if (env.CURL_CRYPTO_WASM_EXEC) {
+    envConfig.runtime = { ...(envConfig.runtime ?? {}), wasmExecPath: env.CURL_CRYPTO_WASM_EXEC };
+  }
+
+  if (!envConfig.runtime?.wasmBinaryPath) {
+    envConfig.runtime = {
+      ...(envConfig.runtime ?? {}),
+      wasmBinaryPath: resolvedWasmPath,
+    };
+  }
 
   return {
     configPath: resolvedConfigPath,
     exists,
+    bootstrapped,
+    runtimeReady: configFileReady && wasmFileReady,
+    runtimeDir,
+    runtimeBundlePath: resolvedBundlePath,
+    runtimeBundleExists: bundleExists,
+    runtimeFiles: {
+      configPath: resolvedConfigPath,
+      configExists: configFileReady,
+      wasmPath: resolvedWasmPath,
+      wasmExists: wasmFileReady,
+    },
     config: mergeRuntimeConfig(mergeRuntimeConfig(DEFAULT_CONFIG, fileConfig), envConfig),
   };
 }
