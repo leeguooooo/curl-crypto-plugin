@@ -13,11 +13,12 @@ import {
 } from '../scripts/lib/curl-crypto-core.mjs';
 import {
   getDefaultWasmBinaryPath,
+  getDefaultRuntimeBundlePath,
   loadRuntimeConfig,
   mergeRuntimeConfig,
   writeRuntimeConfig,
 } from '../scripts/lib/config.mjs';
-import { BUNDLED_RUNTIME_PATH, writeRuntimeBundle } from '../scripts/lib/runtime-bundle.mjs';
+import { writeRuntimeBundle } from '../scripts/lib/runtime-bundle.mjs';
 
 function parseArgs(argv) {
   const positionals = [];
@@ -73,17 +74,32 @@ function createRuntimeBundleRequiredResult(loadedConfig) {
   return {
     ok: false,
     code: 'RUNTIME_BUNDLE_REQUIRED',
-    message: 'Missing private runtime files. Please ask Leo for runtime.dat and place it in the configured bundle path, then run the command again.',
+    message: `Missing private runtime. Ask Leo for runtime.dat, place it at ${loadedConfig.runtimeBundlePath}, then run the command again.`,
     action: 'ask_leo_for_runtime_dat',
-    runtime: {
-      runtimeDir: loadedConfig.runtimeDir,
+    runtimeBundlePath: loadedConfig.runtimeBundlePath,
+  };
+}
+
+function createDoctorResult(loadedConfig) {
+  if (!loadedConfig.runtimeReady) {
+    return {
+      ok: false,
+      code: 'RUNTIME_BUNDLE_REQUIRED',
+      status: 'runtime_missing',
+      message: `Missing private runtime. Ask Leo for runtime.dat, place it at ${loadedConfig.runtimeBundlePath}, then run the command again.`,
+      action: 'ask_leo_for_runtime_dat',
       runtimeBundlePath: loadedConfig.runtimeBundlePath,
-      runtimeBundleExists: loadedConfig.runtimeBundleExists,
-      configPath: loadedConfig.runtimeFiles?.configPath,
-      configExists: loadedConfig.runtimeFiles?.configExists,
-      wasmPath: loadedConfig.runtimeFiles?.wasmPath,
-      wasmExists: loadedConfig.runtimeFiles?.wasmExists,
-    },
+    };
+  }
+
+  return {
+    ok: true,
+    code: 'OK',
+    status: 'ready',
+    message: 'curl-crypto is ready.',
+    configPath: loadedConfig.configPath,
+    runtimeBundlePath: loadedConfig.runtimeBundlePath,
+    wasmPath: loadedConfig.runtimeFiles?.wasmPath,
   };
 }
 
@@ -258,7 +274,7 @@ async function run() {
           ? options.output
           : typeof options.outputFile === 'string'
             ? options.outputFile
-            : BUNDLED_RUNTIME_PATH;
+            : getDefaultRuntimeBundlePath();
 
       result = {
         ok: true,
@@ -283,6 +299,7 @@ async function run() {
         ok: true,
         code: 'OK',
         configPath: loadedConfig.configPath,
+        runtimeBundlePath: loadedConfig.runtimeBundlePath,
         exists: loadedConfig.exists,
       };
     } else if (subcommand === 'show') {
@@ -302,6 +319,8 @@ async function run() {
         message: 'Unknown config command. Use config path, config show, or config init.',
       };
     }
+  } else if (command === 'doctor') {
+    result = createDoctorResult(loadedConfig);
   } else if (command === 'decrypt-payload') {
     const data = await resolveInput(options, 'data');
     result = await decryptPayload({
@@ -340,7 +359,7 @@ async function run() {
       ok: false,
       code: 'USAGE',
       message:
-        'Unknown command. Use self-test, bundle pack, config, decrypt-payload, encrypt-payload, decrypt-curl, or lookup-key.',
+        'Unknown command. Use doctor, self-test, bundle pack, config, decrypt-payload, encrypt-payload, decrypt-curl, or lookup-key.',
     };
   }
 

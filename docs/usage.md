@@ -4,8 +4,14 @@
 
 ```bash
 command -v curl-crypto >/dev/null || npm install -g github:leeguooooo/curl-crypto-plugin
-curl-crypto self-test
+curl-crypto doctor
 curl-crypto config init
+```
+
+If `doctor` reports `RUNTIME_BUNDLE_REQUIRED`, ask Leo for `runtime.dat` and place it at:
+
+```bash
+~/.config/curl-crypto/runtime.dat
 ```
 
 ## Use a private config file

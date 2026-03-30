@@ -15,6 +15,7 @@ It ships with a local `curl-crypto` CLI so AI agents can decrypt request paramet
 
 ## Primary workflows
 
+- `curl-crypto doctor`
 - `curl-crypto self-test`
 - `curl-crypto bundle pack`
 - `curl-crypto config init`
@@ -59,11 +60,12 @@ Private wasm path:
 
 The repository ships a generic Go `wasm_exec.js` runtime, but the business-specific `mimlib.wasm` stays on each machine.
 
-Optional hidden runtime bundle:
+Private runtime bundle:
 
-- Generate: `curl-crypto bundle pack --output vendor/runtime.dat`
-- Install behavior: when `~/.config/curl-crypto/config.json` or `mimlib.wasm` is missing, the CLI will auto-extract `vendor/runtime.dat` if it exists in the installed plugin package
-- Missing-bundle behavior: commands such as `self-test` and `decrypt-curl` will return a structured `RUNTIME_BUNDLE_REQUIRED` error that tells the user to ask Leo for `runtime.dat`
+- Fixed location: `~/.config/curl-crypto/runtime.dat`
+- Generate: `curl-crypto bundle pack --output ~/.config/curl-crypto/runtime.dat`
+- Install behavior: when `~/.config/curl-crypto/config.json` or `mimlib.wasm` is missing, the CLI will auto-extract `~/.config/curl-crypto/runtime.dat`
+- Missing-bundle behavior: `curl-crypto doctor`, `self-test`, and `decrypt-curl` will return `RUNTIME_BUNDLE_REQUIRED` and tell the user to ask Leo for `runtime.dat`
 
 This bundle is only light obfuscation for team distribution convenience. It is not a security boundary.
 
@@ -72,17 +74,19 @@ This bundle is only light obfuscation for team distribution convenience. It is n
 For normal team users, the expected flow is:
 
 1. Install the plugin or the local `curl-crypto` CLI.
-2. Run `curl-crypto self-test` or any decrypt command.
+2. Run `curl-crypto doctor`.
 3. If the private runtime is already present, the CLI will continue normally.
 4. If the private runtime is missing, the CLI will return `RUNTIME_BUNDLE_REQUIRED` and tell the user to ask Leo for `runtime.dat`.
-5. After `runtime.dat` is placed in the package bundle path, the CLI will auto-extract it into `~/.config/curl-crypto/` on the next run.
+5. Put `runtime.dat` at `~/.config/curl-crypto/runtime.dat`.
+6. Run `curl-crypto doctor` again, then continue with decrypt commands.
 
 For team distribution, users should not need to manually handle plain `config.json` or `mimlib.wasm` files.
 
 For Leo or maintainers preparing the private runtime bundle:
 
 ```bash
-curl-crypto bundle pack --output vendor/runtime.dat
+mkdir -p ~/.config/curl-crypto
+curl-crypto bundle pack --output ~/.config/curl-crypto/runtime.dat
 ```
 
 That command packages the current local `config.json` and `mimlib.wasm` into a lightly obfuscated `runtime.dat` file for internal distribution.

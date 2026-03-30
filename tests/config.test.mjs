@@ -4,7 +4,11 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { loadRuntimeConfig, writeRuntimeConfig } from '../scripts/lib/config.mjs';
+import {
+  getDefaultRuntimeBundlePath,
+  loadRuntimeConfig,
+  writeRuntimeConfig,
+} from '../scripts/lib/config.mjs';
 import { writeRuntimeBundle } from '../scripts/lib/runtime-bundle.mjs';
 
 test('loadRuntimeConfig reads a local config file and env overrides', async () => {
@@ -137,4 +141,12 @@ test('loadRuntimeConfig reports missing private runtime when no bundle is availa
   assert.equal(loaded.runtimeBundleExists, false);
   assert.equal(loaded.runtimeFiles.configExists, false);
   assert.equal(loaded.runtimeFiles.wasmExists, false);
+});
+
+test('loadRuntimeConfig defaults runtime bundle path to the user config directory', async () => {
+  const loaded = await loadRuntimeConfig({
+    env: {},
+  });
+
+  assert.equal(loaded.runtimeBundlePath, getDefaultRuntimeBundlePath());
 });

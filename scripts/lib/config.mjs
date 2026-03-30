@@ -2,7 +2,7 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-import { BUNDLED_RUNTIME_PATH, extractRuntimeBundle } from './runtime-bundle.mjs';
+import { extractRuntimeBundle } from './runtime-bundle.mjs';
 
 export const DEFAULT_CONFIG = {
   lookup: {
@@ -64,6 +64,10 @@ export function getDefaultWasmBinaryPath() {
 
 export function getDefaultRuntimeDir() {
   return path.dirname(getDefaultConfigPath());
+}
+
+export function getDefaultRuntimeBundlePath() {
+  return path.join(getDefaultRuntimeDir(), 'runtime.dat');
 }
 
 export function mergeRuntimeConfig(baseConfig = DEFAULT_CONFIG, overrideConfig = {}) {
@@ -141,7 +145,7 @@ export async function loadRuntimeConfig({ configPath, env = process.env } = {}) 
   const resolvedConfigPath = configPath || env.CURL_CRYPTO_CONFIG || getDefaultConfigPath();
   const runtimeDir = path.dirname(resolvedConfigPath);
   const resolvedWasmPath = env.CURL_CRYPTO_WASM_BINARY || path.join(runtimeDir, 'mimlib.wasm');
-  const resolvedBundlePath = env.CURL_CRYPTO_RUNTIME_BUNDLE || BUNDLED_RUNTIME_PATH;
+  const resolvedBundlePath = env.CURL_CRYPTO_RUNTIME_BUNDLE || getDefaultRuntimeBundlePath();
 
   let bootstrapped = false;
   let configFileReady = false;

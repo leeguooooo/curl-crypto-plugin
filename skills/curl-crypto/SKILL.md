@@ -21,7 +21,7 @@ Always use the installed `curl-crypto` CLI directly:
 1. Check `command -v curl-crypto`.
 2. If it is missing, install or reinstall it with `npm install -g github:leeguooooo/curl-crypto-plugin`.
 3. If `command -v curl-crypto` still fails after installation, set `CLI_PATH="$(npm prefix -g)/bin/curl-crypto"` and use that absolute path for every follow-up command in the same session.
-4. After discovery or installation, always run `"${CLI_PATH:-curl-crypto}" self-test` before assuming the binary is usable.
+4. After discovery or installation, always run `"${CLI_PATH:-curl-crypto}" doctor` before doing any decrypt or encrypt work.
 5. Never use `npx curl-crypto`, `npm bin -g`, npm-registry package lookups, or ad-hoc `rm -rf` cleanup on global module folders for this CLI.
 6. If the service needs private settings, run `"${CLI_PATH:-curl-crypto}" config init` once or point the CLI at a private config file.
 7. Use `"${CLI_PATH:-curl-crypto}" decrypt-curl` to extract and decrypt request params from curl.
@@ -32,6 +32,7 @@ Always use the installed `curl-crypto` CLI directly:
 
 ### Setup
 
+- `curl-crypto doctor`
 - `curl-crypto self-test`
 - `curl-crypto config path`
 - `curl-crypto config init`

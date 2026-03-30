@@ -15,7 +15,7 @@ import SiteLayout from '../../layouts/SiteLayout.astro';
     <pre><code>command -v curl-crypto >/dev/null || npm install -g github:leeguooooo/curl-crypto-plugin</code></pre>
 
     <h2>Verify</h2>
-    <pre><code>curl-crypto self-test</code></pre>
+    <pre><code>curl-crypto doctor</code></pre>
 
     <h2>Initialize local config</h2>
     <pre><code>curl-crypto config init</code></pre>
@@ -27,13 +27,14 @@ import SiteLayout from '../../layouts/SiteLayout.astro';
       generic Go <code>wasm_exec.js</code> loader.
     </p>
 
-    <h2>Optional hidden team bundle</h2>
+    <h2>Team runtime bundle</h2>
     <p>
-      For team distribution you can generate a lightly obfuscated <code>runtime.dat</code> bundle and ship it with the
-      plugin package. When the local runtime files are missing, the CLI will automatically unpack that bundle into
-      <code>~/.config/curl-crypto/</code>.
+      For team distribution, keep a lightly obfuscated <code>runtime.dat</code> at the fixed path
+      <code>~/.config/curl-crypto/runtime.dat</code>. When the local runtime files are missing, the CLI will
+      automatically unpack that bundle into <code>~/.config/curl-crypto/</code>.
     </p>
-    <pre><code>curl-crypto bundle pack --output vendor/runtime.dat</code></pre>
+    <pre><code>mkdir -p ~/.config/curl-crypto
+curl-crypto bundle pack --output ~/.config/curl-crypto/runtime.dat</code></pre>
 
     <h2>First decrypt example</h2>
     <pre><code>curl-crypto decrypt-curl --curl-file request.curl</code></pre>

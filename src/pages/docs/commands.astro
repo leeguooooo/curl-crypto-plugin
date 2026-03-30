@@ -4,7 +4,7 @@ import SiteLayout from '../../layouts/SiteLayout.astro';
 const groups = [
   {
     title: 'Environment',
-    items: ['Setup Curl Crypto', 'curl-crypto self-test', 'curl-crypto config init', 'curl-crypto bundle pack'],
+    items: ['Setup Curl Crypto', 'curl-crypto doctor', 'curl-crypto self-test', 'curl-crypto config init', 'curl-crypto bundle pack'],
   },
   {
     title: 'Decrypt',
@@ -20,8 +20,9 @@ const groups = [
   },
 ];
 
-const cliExamples = `curl-crypto config init
-curl-crypto bundle pack --output vendor/runtime.dat
+const cliExamples = `curl-crypto doctor
+curl-crypto config init
+curl-crypto bundle pack --output ~/.config/curl-crypto/runtime.dat
 curl-crypto decrypt-curl --curl-file request.curl
 curl-crypto decrypt-payload --data '<cipher>' --key abc --key-suffix xyz
 curl-crypto encrypt-payload --data '{"foo":"bar"}' --key abc --key-suffix xyz
