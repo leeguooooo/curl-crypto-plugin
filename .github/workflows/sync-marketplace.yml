@@ -1,0 +1,32 @@
+name: Sync Marketplace
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  notify-marketplace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger port-wind marketplace sync
+        env:
+          GH_TOKEN: ${{ secrets.PORT_WIND_MARKETPLACE_TOKEN }}
+          SOURCE_REPO: ${{ github.repository }}
+          SOURCE_REF: ${{ github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Missing PORT_WIND_MARKETPLACE_TOKEN secret."
+            exit 1
+          fi
+
+          gh api repos/port-wind/marketplace/dispatches \
+            --method POST \
+            -f event_type='plugin-updated' \
+            -F client_payload[source_repo]="$SOURCE_REPO" \
+            -F client_payload[source_ref]="$SOURCE_REF" \
+            -F client_payload[source_sha]="$SOURCE_SHA"

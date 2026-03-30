@@ -87,6 +87,14 @@ curl-crypto bundle pack --output vendor/runtime.dat
 
 That command packages the current local `config.json` and `mimlib.wasm` into a lightly obfuscated `runtime.dat` file for internal distribution.
 
+## Marketplace sync
+
+This repository is the source of truth for `curl-crypto-plugin`.
+
+To enable automatic sync into `port-wind/marketplace` after each push to `main`, configure:
+
+- `PORT_WIND_MARKETPLACE_TOKEN`: a token that can send `repository_dispatch` events to `port-wind/marketplace`
+
 ## Layout
 
 - `.cursor-plugin/plugin.json`: Cursor marketplace metadata
