@@ -1,6 +1,7 @@
 import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 const execFile = promisify(execFileCallback);
 const INSTALL_TARGET = 'github:leeguooooo/curl-crypto-plugin';
@@ -31,8 +32,53 @@ async function findBinary(binary, exec = defaultExec) {
   return (result.stdout ?? '').trim();
 }
 
+async function findNpmInstalledCli(exec = defaultExec) {
+  const result = await exec('npm', ['prefix', '-g']);
+  const prefix = (result.stdout ?? '').trim();
+  const binaryName = process.platform === 'win32' ? 'curl-crypto.cmd' : 'curl-crypto';
+  return path.join(prefix, 'bin', binaryName);
+}
+
 async function verifyCli(cliPath, exec = defaultExec) {
   await exec(cliPath, ['self-test']);
+}
+
+async function resolveCliPath(exec = defaultExec) {
+  const candidates = [];
+
+  try {
+    candidates.push(await findBinary('curl-crypto', exec));
+  } catch {
+    // Ignore PATH miss and try the npm global bin path next.
+  }
+
+  try {
+    candidates.push(await findNpmInstalledCli(exec));
+  } catch {
+    // Ignore npm prefix issues here; install flow will surface them later.
+  }
+
+  const uniqueCandidates = [...new Set(candidates.filter(Boolean))];
+  let lastError = null;
+
+  for (const cliPath of uniqueCandidates) {
+    try {
+      await verifyCli(cliPath, exec);
+      return cliPath;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  const error = new Error('curl-crypto was not found');
+  error.code = 127;
+  error.stdout = '';
+  error.stderr = 'curl-crypto was not found';
+  throw error;
 }
 
 export async function ensureCurlCrypto({ exec = defaultExec } = {}) {
@@ -53,8 +99,7 @@ export async function ensureCurlCrypto({ exec = defaultExec } = {}) {
   }
 
   try {
-    const cliPath = await findBinary('curl-crypto', exec);
-    await verifyCli(cliPath, exec);
+    const cliPath = await resolveCliPath(exec);
     return {
       ok: true,
       code: 'OK',
@@ -77,8 +122,7 @@ export async function ensureCurlCrypto({ exec = defaultExec } = {}) {
   }
 
   try {
-    const cliPath = await findBinary('curl-crypto', exec);
-    await verifyCli(cliPath, exec);
+    const cliPath = await resolveCliPath(exec);
     return {
       ok: true,
       code: 'OK',
@@ -86,10 +130,18 @@ export async function ensureCurlCrypto({ exec = defaultExec } = {}) {
       cliPath,
     };
   } catch (error) {
+    let npmGlobalCli = '';
+    try {
+      npmGlobalCli = await findNpmInstalledCli(exec);
+    } catch {
+      // Ignore lookup failure and return the base error details.
+    }
+
     return createCommandError('CLI_INVALID', 'curl-crypto is still unavailable after installation or cannot run self-test.', {
       stderr: error.stderr ?? '',
       stdout: error.stdout ?? '',
       installTarget: INSTALL_TARGET,
+      npmGlobalCli,
     });
   }
 }
