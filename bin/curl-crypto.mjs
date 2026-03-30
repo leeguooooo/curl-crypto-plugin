@@ -85,21 +85,14 @@ function createDoctorResult(loadedConfig) {
     return {
       ok: false,
       code: 'RUNTIME_BUNDLE_REQUIRED',
-      status: 'runtime_missing',
-      message: `Missing private runtime. Ask Leo for runtime.dat, place it at ${loadedConfig.runtimeBundlePath}, then run the command again.`,
-      action: 'ask_leo_for_runtime_dat',
-      runtimeBundlePath: loadedConfig.runtimeBundlePath,
+      message: `RUNTIME_BUNDLE_REQUIRED: Missing private runtime. Ask Leo for runtime.dat and place it at ${loadedConfig.runtimeBundlePath}.`,
     };
   }
 
   return {
     ok: true,
     code: 'OK',
-    status: 'ready',
-    message: 'curl-crypto is ready.',
-    configPath: loadedConfig.configPath,
-    runtimeBundlePath: loadedConfig.runtimeBundlePath,
-    wasmPath: loadedConfig.runtimeFiles?.wasmPath,
+    message: 'OK: curl-crypto is ready.',
   };
 }
 
@@ -361,6 +354,11 @@ async function run() {
       message:
         'Unknown command. Use doctor, self-test, bundle pack, config, decrypt-payload, encrypt-payload, decrypt-curl, or lookup-key.',
     };
+  }
+
+  if (command === 'doctor') {
+    console.log(result.message);
+    process.exit(result.ok ? 0 : 1);
   }
 
   console.log(JSON.stringify(result, null, 2));

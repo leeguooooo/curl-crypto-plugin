@@ -50,11 +50,11 @@ test('doctor reports the fixed runtime bundle path when private runtime is missi
 
     assert.fail('doctor should fail when the private runtime is unavailable');
   } catch (error) {
-    const output = JSON.parse(error.stdout);
+    const output = error.stdout.trim();
 
-    assert.equal(output.ok, false);
-    assert.equal(output.code, 'RUNTIME_BUNDLE_REQUIRED');
-    assert.equal(output.status, 'runtime_missing');
-    assert.equal(output.runtimeBundlePath, path.join(dir, 'runtime.dat'));
+    assert.equal(
+      output,
+      `RUNTIME_BUNDLE_REQUIRED: Missing private runtime. Ask Leo for runtime.dat and place it at ${path.join(dir, 'runtime.dat')}.`
+    );
   }
 });
