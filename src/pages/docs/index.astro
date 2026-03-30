@@ -1,0 +1,44 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+
+const docs = [
+  {
+    title: 'Getting started',
+    description: 'Install curl-crypto, verify the local self-test, and initialize private config.',
+    href: 'getting-started/',
+  },
+  {
+    title: 'Commands',
+    description: 'See the supported decrypt, encrypt, lookup, and config commands.',
+    href: 'commands/',
+  },
+  {
+    title: 'Development',
+    description: 'Understand the local parser, config loader, and crypto helpers.',
+    href: 'development/',
+  },
+];
+
+const basePath = import.meta.env.BASE_URL;
+const withBase = (path = '') => `${basePath.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+---
+
+<SiteLayout title="Docs | Curl Crypto" description="Documentation for the Curl Crypto plugin.">
+  <section class="docs-hero">
+    <p class="eyebrow">Docs</p>
+    <h1>Encrypted request tooling with private local configuration.</h1>
+    <p>
+      The first release focuses on setup, config initialization, decrypting request parameters from curl, encrypting
+      payloads for replay, and running a generic lookup flow through local config.
+    </p>
+  </section>
+
+  <section class="docs-grid">
+    {docs.map((doc) => (
+      <a class="docs-card" href={withBase(`docs/${doc.href}`)}>
+        <h2>{doc.title}</h2>
+        <p>{doc.description}</p>
+      </a>
+    ))}
+  </section>
+</SiteLayout>

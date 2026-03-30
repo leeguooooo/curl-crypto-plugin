@@ -1,0 +1,35 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+---
+
+<SiteLayout title="Development | Curl Crypto" description="Development notes for the Curl Crypto plugin.">
+  <article class="doc-article">
+    <p class="eyebrow">Development</p>
+    <h1>The repo is split into a CLI core and a private config layer.</h1>
+    <p>
+      The plugin shell is thin. The real behavior lives in a local CLI, and the service-specific details come from a
+      local config file so the repository can stay generic.
+    </p>
+
+    <h2>Key files</h2>
+    <ul>
+      <li><code>bin/curl-crypto.mjs</code>: CLI entrypoint and argument routing</li>
+      <li><code>scripts/lib/config.mjs</code>: private config loading, env overrides, and config writing</li>
+      <li><code>scripts/lib/curl-parser.mjs</code>: shell-style curl parsing</li>
+      <li><code>scripts/lib/curl-crypto-core.mjs</code>: AES encrypt/decrypt, lookup integration, and curl decryption logic</li>
+      <li><code>tests/*.test.mjs</code>: local verification for install, config, execution, and crypto behavior</li>
+    </ul>
+
+    <h2>Validation</h2>
+    <pre><code>npm test
+npm run validate
+npm run build</code></pre>
+
+    <h2>Design choices</h2>
+    <ul>
+      <li>The CLI is installable directly from GitHub so the plugin has a stable runtime surface before npm publication.</li>
+      <li>The repo does not hardcode real service URLs or header names.</li>
+      <li>One-time local config is more reliable for AI tools than per-run interactive input.</li>
+    </ul>
+  </article>
+</SiteLayout>

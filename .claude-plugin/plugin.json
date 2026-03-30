@@ -1,0 +1,8 @@
+{
+  "name": "curl-crypto-plugin",
+  "description": "Decrypt encrypted curl request parameters and encrypt payloads for test-service calls through a local curl-crypto CLI.",
+  "version": "0.1.0",
+  "author": {
+    "name": "leeguooooo"
+  }
+}

@@ -1,0 +1,53 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+
+const groups = [
+  {
+    title: 'Environment',
+    items: ['Setup Curl Crypto', 'curl-crypto self-test', 'curl-crypto config init'],
+  },
+  {
+    title: 'Decrypt',
+    items: ['Decrypt Curl Params', 'Decrypt Payload'],
+  },
+  {
+    title: 'Encrypt',
+    items: ['Encrypt Payload'],
+  },
+  {
+    title: 'Lookup',
+    items: ['Lookup Key'],
+  },
+];
+
+const cliExamples = `curl-crypto config init
+curl-crypto decrypt-curl --curl-file request.curl
+curl-crypto decrypt-payload --data '<cipher>' --key abc --key-suffix xyz
+curl-crypto encrypt-payload --data '{"foo":"bar"}' --key abc --key-suffix xyz
+curl-crypto lookup-key --context ctx-123`;
+---
+
+<SiteLayout title="Commands | Curl Crypto" description="Command surface for the Curl Crypto plugin.">
+  <article class="doc-article">
+    <p class="eyebrow">Commands</p>
+    <h1>First release command set</h1>
+    <p>
+      The command surface stays deliberately narrow: initialize local config, decrypt curl request parameters,
+      decrypt an isolated payload, encrypt a payload, or resolve a key through the private lookup flow.
+    </p>
+
+    {groups.map((group) => (
+      <section class="command-group">
+        <h2>{group.title}</h2>
+        <ul class="command-list">
+          {group.items.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </section>
+    ))}
+
+    <h2>CLI examples</h2>
+    <pre><code>{cliExamples}</code></pre>
+  </article>
+</SiteLayout>

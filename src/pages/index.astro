@@ -1,0 +1,131 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+
+const workflows = [
+  {
+    title: 'Decrypt request params from curl',
+    description: 'Point the plugin at an encrypted curl command and get the real request parameters back, whether the ciphertext sits in body.data or query.data.',
+  },
+  {
+    title: 'Keep service details local',
+    description: 'Lookup URLs, header mappings, and fallback keys live in a private config file on the user machine instead of inside the public repository.',
+  },
+  {
+    title: 'Encrypt payloads before test calls',
+    description: 'Prepare a JSON body for encrypted test-service endpoints so the agent can send the request instead of stopping at analysis.',
+  },
+];
+
+const commands = [
+  'Setup Curl Crypto',
+  'Decrypt Curl Params',
+  'Decrypt Payload',
+  'Encrypt Payload',
+  'Lookup Key',
+];
+
+const setupExample = `$ curl-crypto config path
+{
+  "ok": true,
+  "code": "OK",
+  "configPath": "/Users/name/.config/curl-crypto/config.json",
+  "exists": true
+}`;
+const basePath = import.meta.env.BASE_URL;
+const withBase = (path = '') => `${basePath.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+---
+
+<SiteLayout title="Curl Crypto for Cursor" description="A GitHub Pages home for the Curl Crypto plugin. Decrypt encrypted curl request parameters and encrypt payloads for test-service calls.">
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Cursor plugin + local CLI</p>
+      <h1>Let AI read encrypted curl requests without publishing your protocol details.</h1>
+      <p class="hero-lead">
+        Curl Crypto installs a local <code>curl-crypto</code> CLI so Cursor and Claude Code can decrypt request
+        parameters from encrypted curl commands, re-encrypt payloads before test calls, and load service-specific
+        details from a private local config file.
+      </p>
+      <div class="hero-actions">
+        <a class="button button-primary" href={withBase('docs/getting-started/')}>Start with setup</a>
+        <a class="button button-secondary" href="https://github.com/leeguooooo/curl-crypto-plugin">View repository</a>
+      </div>
+      <div class="hero-meta">
+        <span>Works with local curl</span>
+        <span>Private config driven</span>
+        <span>Safe to open-source</span>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <div class="terminal-card">
+        <div class="terminal-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <pre><code>{setupExample}</code></pre>
+      </div>
+      <div class="badge-grid">
+        <div class="mini-card">
+          <strong>Decrypt curl</strong>
+          <span>Extract encrypted request params from POST bodies and GET query strings.</span>
+        </div>
+        <div class="mini-card">
+          <strong>Encrypt for replay</strong>
+          <span>Turn edited JSON back into ciphertext before sending a request to the test service.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <p class="eyebrow">Why this plugin</p>
+      <h2>Keep the workflow in the editor, keep the sensitive details on the local machine.</h2>
+    </div>
+    <div class="card-grid">
+      {workflows.map((workflow) => (
+        <article class="feature-card">
+          <h3>{workflow.title}</h3>
+          <p>{workflow.description}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="section split-section">
+    <div>
+      <p class="eyebrow">How it works</p>
+      <h2>A small CLI surface with local configuration.</h2>
+      <ol class="timeline">
+        <li>Check whether <code>curl-crypto</code> is on PATH.</li>
+        <li>Install it from GitHub when it is missing.</li>
+        <li>Load private lookup and header config from the local machine.</li>
+        <li>Decrypt or encrypt request payloads without committing service details.</li>
+      </ol>
+    </div>
+    <div class="surface-card">
+      <p class="surface-title">Primary workflows</p>
+      <ul class="tag-list">
+        {commands.map((command) => (
+          <li>{command}</li>
+        ))}
+      </ul>
+      <a class="text-link" href={withBase('docs/commands/')}>Browse command details</a>
+    </div>
+  </section>
+
+  <section class="section callout">
+    <div>
+      <p class="eyebrow">Docs site starts here</p>
+      <h2>The landing page explains the boundary. The docs explain the local setup.</h2>
+      <p>
+        The public site documents the generic workflow only. Real lookup URLs, header names, and fallback key
+        material stay in the private config file on each user machine.
+      </p>
+    </div>
+    <div class="callout-actions">
+      <a class="button button-primary" href={withBase('docs/')}>Open docs</a>
+      <a class="button button-secondary" href={withBase('docs/development/')}>Developer notes</a>
+    </div>
+  </section>
+</SiteLayout>

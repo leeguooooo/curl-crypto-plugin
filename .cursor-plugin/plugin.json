@@ -1,0 +1,14 @@
+{
+  "name": "curl-crypto-plugin",
+  "displayName": "Curl Crypto",
+  "version": "0.1.0",
+  "description": "Decrypt encrypted curl request parameters and encrypt payloads for test-service calls through a local curl-crypto CLI.",
+  "author": {
+    "name": "leeguooooo"
+  },
+  "license": "MIT",
+  "keywords": ["cursor", "plugin", "curl", "crypto", "decrypt", "encrypt", "developer-tools"],
+  "logo": "assets/logo.svg",
+  "skills": "skills",
+  "commands": "commands"
+}

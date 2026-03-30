@@ -1,0 +1,33 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+---
+
+<SiteLayout title="Getting Started | Curl Crypto" description="Setup guide for the Curl Crypto plugin.">
+  <article class="doc-article">
+    <p class="eyebrow">Getting Started</p>
+    <h1>Install the local CLI and keep service-specific details in local config.</h1>
+    <p>
+      The plugin is designed around a local command surface. The public repository stays generic; the sensitive
+      service settings live in a private config file on each machine.
+    </p>
+
+    <h2>Install</h2>
+    <pre><code>command -v curl-crypto >/dev/null || npm install -g github:leeguooooo/curl-crypto-plugin</code></pre>
+
+    <h2>Verify</h2>
+    <pre><code>curl-crypto self-test</code></pre>
+
+    <h2>Initialize local config</h2>
+    <pre><code>curl-crypto config init</code></pre>
+
+    <h2>First decrypt example</h2>
+    <pre><code>curl-crypto decrypt-curl --curl-file request.curl</code></pre>
+
+    <h2>When to pass values explicitly</h2>
+    <ul>
+      <li>Pass <code>--key</code> when the request does not expose a key through configured headers.</li>
+      <li>Pass <code>--key-suffix</code> when the request needs a second key fragment.</li>
+      <li>Use <code>--config</code> or <code>CURL_CRYPTO_CONFIG</code> when the private config file lives outside the default path.</li>
+    </ul>
+  </article>
+</SiteLayout>

@@ -1,0 +1,19 @@
+{
+  "name": "curl-crypto-plugin",
+  "version": "0.1.0",
+  "description": "Cursor and Claude Code plugin plus CLI for decrypting encrypted curl payloads.",
+  "type": "module",
+  "bin": {
+    "curl-crypto": "bin/curl-crypto.mjs"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "node --test tests/*.test.mjs",
+    "validate": "node scripts/validate-template.mjs"
+  },
+  "devDependencies": {
+    "astro": "^5.13.5"
+  }
+}
